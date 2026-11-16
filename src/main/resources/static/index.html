@@ -1,0 +1,1180 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SearchIT Agent</title>
+
+    <style>
+        :root {
+            --bg: #0d1122;
+            --surface: #161c33;
+            --surface-2: #1d2540;
+            --ink: #e8ecff;
+            --muted: #a3acce;
+            --line: #2a3250;
+            --primary: #7186ff;
+            --primary-hover: #8798ff;
+            --ok: #58d6ab;
+            --ok-bg: #12372e;
+            --warn: #ffcb6b;
+            --warn-bg: #3a2e10;
+            --bad: #ff8f87;
+            --bad-bg: #3d1a1a;
+            --code-bg: #090e1e;
+            --radius: 14px;
+            --mono: "Cascadia Code", Consolas, monospace;
+            --sans: "Segoe UI", system-ui, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            color: var(--ink);
+            font: 15px/1.6 var(--sans);
+        }
+
+        button, textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 3px;
+        }
+
+        /* Header */
+
+        header {
+            height: 72px;
+            padding: 0 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            background: #26345e;
+            color: #9aabff;
+            font-size: 20px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 19px;
+            letter-spacing: -.5px;
+        }
+
+        header p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .connection {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ok);
+        }
+
+        /* Main chat */
+
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 35px 18px 20px;
+            scroll-behavior: smooth;
+        }
+
+        .thread {
+            width: 100%;
+            max-width: 850px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .welcome {
+            margin: 65px auto 30px;
+            width: 100%;
+            max-width: 720px;
+        }
+
+        .welcome-tag {
+            display: inline-block;
+            padding: 5px 11px;
+            border-radius: 20px;
+            background: #202b50;
+            color: #a7b5ff;
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+
+        .welcome h2 {
+            font-size: clamp(27px, 4vw, 39px);
+            line-height: 1.2;
+            letter-spacing: -1.2px;
+            margin: 0 0 13px;
+        }
+
+        .welcome p {
+            color: var(--muted);
+            max-width: 590px;
+            margin: 0 0 26px;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .chip {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            color: var(--ink);
+            border-radius: 10px;
+            padding: 11px 15px;
+            text-align: left;
+            font-size: 13px;
+            transition: .2s;
+        }
+
+        .chip:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: var(--surface-2);
+        }
+
+        .chip:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        /* User message */
+
+        .user {
+            align-self: flex-end;
+            max-width: min(650px, 90%);
+            background: #354baf;
+            color: white;
+            padding: 12px 17px;
+            border-radius: 15px 15px 4px 15px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        /* Agent response */
+
+        .agent {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 19px;
+        }
+
+        .agent.failed {
+            border-color: var(--bad);
+        }
+
+        .head {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 13px;
+        }
+
+        .badge {
+            padding: 4px 11px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .badge.success {
+            color: var(--ok);
+            background: var(--ok-bg);
+        }
+
+        .badge.partial {
+            color: var(--warn);
+            background: var(--warn-bg);
+        }
+
+        .badge.failed {
+            color: var(--bad);
+            background: var(--bad-bg);
+        }
+
+        .meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .summary {
+            margin: 0 0 15px;
+            max-width: 75ch;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        /* Expandable sections */
+
+        details {
+            border-top: 1px solid var(--line);
+            padding: 12px 0 3px;
+            margin-top: 10px;
+        }
+
+        details > summary {
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 650;
+            list-style: none;
+        }
+
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details > summary::before {
+            content: "›";
+            display: inline-block;
+            margin-right: 9px;
+            font-size: 18px;
+            transition: transform .2s;
+        }
+
+        details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+
+        .tools {
+            float: right;
+            display: flex;
+            gap: 7px;
+        }
+
+        .tool {
+            border: 1px solid var(--line);
+            background: var(--surface-2);
+            color: var(--ink);
+            border-radius: 7px;
+            padding: 4px 11px;
+            font-size: 11px;
+        }
+
+        .tool:hover {
+            border-color: var(--primary);
+        }
+
+        pre.json {
+            margin: 13px 0 5px;
+            padding: 15px;
+            border-radius: 9px;
+            background: var(--code-bg);
+            color: #dfe5ff;
+            font: 12px/1.6 var(--mono);
+            overflow: auto;
+            max-height: 380px;
+        }
+
+        .j-key { color: #8fb0ff; }
+        .j-str { color: #9be3c3; }
+        .j-num { color: #ffc77d; }
+        .j-lit { color: #ff9fb0; }
+
+        /* Execution log */
+
+        ol.trace {
+            list-style: none;
+            margin: 12px 0;
+            padding: 0;
+        }
+
+        ol.trace li {
+            position: relative;
+            padding: 5px 0 5px 20px;
+            font: 12px/1.6 var(--mono);
+            overflow-wrap: anywhere;
+        }
+
+        ol.trace li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 11px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        ol.trace li.bad::before {
+            background: var(--bad);
+        }
+
+        ol.trace li.warn::before {
+            background: var(--warn);
+        }
+
+        pre.stderr {
+            padding: 12px;
+            background: var(--bad-bg);
+            color: var(--bad);
+            border-radius: 8px;
+            font: 11px/1.5 var(--mono);
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        /* Running indicator */
+
+        .running {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            color: var(--muted);
+            font-size: 13px;
+            padding: 12px;
+        }
+
+        .loader {
+            width: 17px;
+            height: 17px;
+            border: 2px solid var(--line);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Chat composer */
+
+        footer {
+            padding: 12px 18px 20px;
+            background: var(--bg);
+        }
+
+        .composer {
+            max-width: 850px;
+            margin: auto;
+        }
+
+        .box {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            padding: 10px 10px 10px 17px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            transition: .2s;
+        }
+
+        .box:focus-within {
+            border-color: var(--primary);
+        }
+
+        textarea {
+            flex: 1;
+            min-width: 0;
+            border: 0;
+            outline: none;
+            resize: none;
+            background: transparent;
+            color: var(--ink);
+            padding: 8px 0;
+            max-height: 180px;
+            line-height: 1.5;
+        }
+
+        textarea::placeholder {
+            color: #7883a5;
+        }
+
+        .send {
+            border: none;
+            background: var(--primary);
+            color: #10152c;
+            padding: 11px 22px;
+            border-radius: 10px;
+            font-weight: 700;
+            transition: .2s;
+        }
+
+        .send:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        .send.stop {
+            background: #b94d52;
+            color: white;
+        }
+
+        .send:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            min-height: 22px;
+            margin: 7px 5px 0;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .hint.err {
+            color: var(--bad);
+        }
+
+        @media(max-width: 600px) {
+            header {
+                padding: 0 16px;
+            }
+
+            header p {
+                display: none;
+            }
+
+            .connection {
+                font-size: 10px;
+            }
+
+            main {
+                padding: 20px 13px;
+            }
+
+            .welcome {
+                margin-top: 35px;
+            }
+
+            .agent {
+                padding: 14px;
+            }
+
+            .send {
+                padding: 10px 15px;
+            }
+        }
+
+        @media(prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="brand">
+        <div class="brand-icon">⌘</div>
+        <div>
+            <h1>SearchIT Agent</h1>
+            <p>Intelligent web crawling and data extraction</p>
+        </div>
+    </div>
+
+    <div class="connection">
+        <span class="dot"></span>
+        Agent interface
+    </div>
+</header>
+
+<main id="scroller" aria-live="polite">
+    <div class="thread" id="thread">
+
+        <section class="welcome" id="welcome">
+            <span class="welcome-tag">✦ AI-powered web intelligence</span>
+
+            <h2>What would you like to discover today?</h2>
+
+            <p>
+                Give the agent a website and describe what you need.
+                It will crawl pages, extract useful information,
+                and generate structured results.
+            </p>
+
+            <div class="chips" id="chips"></div>
+        </section>
+
+    </div>
+</main>
+
+<footer>
+    <form class="composer" id="form" autocomplete="off">
+        <div class="box">
+            <textarea
+                    id="input"
+                    rows="1"
+                    maxlength="2000"
+                    aria-label="Your request"
+                    placeholder="Crawl https://example.com and give me a summary and JSON">
+            </textarea>
+
+            <button class="send" id="send" type="submit">
+                Send
+            </button>
+        </div>
+
+        <div class="hint" id="hint">
+            Enter to send · Shift + Enter for a new line
+        </div>
+    </form>
+</footer>
+
+<script>
+    (() => {
+        'use strict';
+
+        /* Configuration */
+
+        const API_BASE =
+            new URLSearchParams(location.search).get('api') ||
+            (location.protocol === 'file:' ? 'http://localhost:8080' : '');
+
+        const ENDPOINT = API_BASE + '/api/agent/chat';
+
+        const MAX_LEN = 2000;
+        const CLIENT_TIMEOUT_MS = 70000;
+
+        const URL_RE = /https?:\/\/[^\s"'<>)]+/;
+
+        const EXAMPLES = [
+            'Crawl https://example.com, extract the important information, give me a summary, and return the extracted data in JSON format.',
+            'Summarise https://www.iana.org/help/example-domains using at most 3 pages',
+            'Crawl http://localhost:8080 and summarise it'
+        ];
+
+        /* DOM elements */
+
+        const $ = id => document.getElementById(id);
+
+        const thread = $('thread');
+        const scroller = $('scroller');
+        const form = $('form');
+        const input = $('input');
+        const sendBtn = $('send');
+        const hint = $('hint');
+        const chipsEl = $('chips');
+
+        let inFlight = null;
+
+        /* Safe element helper */
+
+        function el(tag, cls, text) {
+            const node = document.createElement(tag);
+
+            if (cls) node.className = cls;
+            if (text !== undefined) node.textContent = text;
+
+            return node;
+        }
+
+        /* Example prompts */
+
+        EXAMPLES.forEach(text => {
+            const button = el(
+                'button',
+                'chip',
+                text.length > 70 ? text.slice(0, 67) + '…' : text
+            );
+
+            button.type = 'button';
+            button.title = text;
+
+            button.addEventListener('click', () => {
+                input.value = text;
+                autosize();
+                input.focus();
+            });
+
+            chipsEl.appendChild(button);
+        });
+
+        /* Input behaviour */
+
+        function autosize() {
+            input.style.height = 'auto';
+            input.style.height =
+                Math.min(input.scrollHeight, 180) + 'px';
+        }
+
+        input.addEventListener('input', () => {
+            autosize();
+            setHint('Enter to send · Shift + Enter for a new line');
+        });
+
+        input.addEventListener('keydown', event => {
+            if (
+                event.key === 'Enter' &&
+                !event.shiftKey &&
+                !event.isComposing
+            ) {
+                event.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
+        function setHint(message, isError = false) {
+            hint.textContent = message;
+            hint.className = 'hint' + (isError ? ' err' : '');
+        }
+
+        /* Validation */
+
+        function validate(message) {
+            if (!message) {
+                return 'Type a request first.';
+            }
+
+            if (message.length > MAX_LEN) {
+                return 'Keep the request under 2000 characters.';
+            }
+
+            if (!URL_RE.test(message)) {
+                return 'Include a website address starting with http:// or https://.';
+            }
+
+            return null;
+        }
+
+        /* Running state */
+
+        function setRunning(running) {
+            input.disabled = running;
+
+            chipsEl.querySelectorAll('button').forEach(button => {
+                button.disabled = running;
+            });
+
+            sendBtn.textContent = running ? 'Stop' : 'Send';
+
+            sendBtn.classList.toggle('stop', running);
+
+            sendBtn.type = running ? 'button' : 'submit';
+
+            if (!running) input.focus();
+        }
+
+        sendBtn.addEventListener('click', () => {
+            if (inFlight) {
+                inFlight.abort('cancelled');
+            }
+        });
+
+        /* Scrolling */
+
+        function scrollDown() {
+            scroller.scrollTop = scroller.scrollHeight;
+        }
+
+        /* User message */
+
+        function addUser(message) {
+            const welcome = $('welcome');
+
+            if (welcome) welcome.remove();
+
+            thread.appendChild(el('div', 'user', message));
+
+            scrollDown();
+        }
+
+        /* Running indicator */
+
+        function addRunning() {
+            const row = el('div', 'agent running');
+
+            row.appendChild(el('div', 'loader'));
+
+            row.appendChild(
+                el('span', '', 'Crawler CLI is running...')
+            );
+
+            thread.appendChild(row);
+
+            scrollDown();
+
+            return row;
+        }
+
+        /* JSON highlighting */
+
+        function highlightJson(obj) {
+            const text = JSON.stringify(obj, null, 2);
+
+            const fragment = document.createDocumentFragment();
+
+            const regex =
+                /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
+
+            let last = 0;
+            let match;
+
+            while ((match = regex.exec(text)) !== null) {
+
+                if (match.index > last) {
+                    fragment.appendChild(
+                        document.createTextNode(
+                            text.slice(last, match.index)
+                        )
+                    );
+                }
+
+                const cls = match[1]
+                    ? (match[2] ? 'j-key' : 'j-str')
+                    : match[3] ? 'j-lit' : 'j-num';
+
+                fragment.appendChild(
+                    el('span', cls, match[1] || match[0])
+                );
+
+                if (match[2]) {
+                    fragment.appendChild(
+                        document.createTextNode(match[2])
+                    );
+                }
+
+                last = regex.lastIndex;
+            }
+
+            if (last < text.length) {
+                fragment.appendChild(
+                    document.createTextNode(text.slice(last))
+                );
+            }
+
+            return { frag: fragment, text };
+        }
+
+        /* Copy functionality */
+
+        function copyText(text, button) {
+            const done = () => {
+                const old = button.textContent;
+
+                button.textContent = 'Copied';
+
+                setTimeout(() => {
+                    button.textContent = old;
+                }, 1400);
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text)
+                    .then(done, () => fallbackCopy(text, done));
+            } else {
+                fallbackCopy(text, done);
+            }
+        }
+
+        function fallbackCopy(text, done) {
+            const area = document.createElement('textarea');
+
+            area.value = text;
+            area.style.position = 'fixed';
+            area.style.opacity = '0';
+
+            document.body.appendChild(area);
+
+            area.select();
+
+            try {
+                document.execCommand('copy');
+                done();
+            } catch (_) {}
+
+            area.remove();
+        }
+
+        /* Download JSON */
+
+        function downloadJson(text) {
+            const anchor = document.createElement('a');
+
+            const url = URL.createObjectURL(
+                new Blob([text], { type: 'application/json' })
+            );
+
+            anchor.href = url;
+            anchor.download = 'crawl-result.json';
+
+            anchor.click();
+
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        /* Render backend response */
+
+        function renderResult(res) {
+
+            const status = [
+                'success',
+                'partial',
+                'failed'
+            ].includes(res.status) ? res.status : 'failed';
+
+            const card = el('div', 'agent ' + status);
+
+            /* Header */
+
+            const head = el('div', 'head');
+
+            const label = {
+                success: 'Success',
+                partial: 'Partial result',
+                failed: res.localLabel || 'Failed'
+            }[status];
+
+            head.appendChild(
+                el('span', 'badge ' + status, label)
+            );
+
+            const bits = [];
+
+            if (
+                res.data &&
+                typeof res.data.pagesCrawled === 'number'
+            ) {
+                bits.push(res.data.pagesCrawled + ' page(s) crawled');
+            }
+
+            if (res.data && res.data.failures > 0) {
+                bits.push(res.data.failures + ' failed');
+            }
+
+            if (
+                typeof res.exitCode === 'number' &&
+                !res.localLabel
+            ) {
+                bits.push('Exit code ' + res.exitCode);
+            }
+
+            if (res.durationMs > 0) {
+                bits.push(
+                    (res.durationMs / 1000).toFixed(1) + ' seconds'
+                );
+            }
+
+            if (bits.length) {
+                head.appendChild(
+                    el('span', 'meta', bits.join(' · '))
+                );
+            }
+
+            card.appendChild(head);
+
+            /* Summary */
+
+            card.appendChild(
+                el('p', 'summary', res.summary || 'No summary returned.')
+            );
+
+            /* Extracted JSON */
+
+            if (res.data) {
+
+                const { frag, text } = highlightJson(res.data);
+
+                const details = el('details');
+
+                details.open = !!res.wantsJson;
+
+                const summary = el(
+                    'summary',
+                    '',
+                    'Extracted data (JSON)'
+                );
+
+                const tools = el('span', 'tools');
+
+                const copy = el('button', 'tool', 'Copy');
+                const download = el('button', 'tool', 'Download');
+
+                copy.type = 'button';
+                download.type = 'button';
+
+                copy.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    copyText(text, copy);
+                });
+
+                download.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    downloadJson(text);
+                });
+
+                tools.append(copy, download);
+
+                summary.appendChild(tools);
+
+                const pre = el('pre', 'json');
+
+                pre.appendChild(frag);
+
+                details.append(summary, pre);
+
+                card.appendChild(details);
+            }
+
+            /* Execution log */
+
+            const steps = Array.isArray(res.steps) ? res.steps : [];
+
+            if (steps.length || res.stderr) {
+
+                const details = el('details');
+
+                details.open = status !== 'success';
+
+                details.appendChild(
+                    el('summary', '', 'Execution log')
+                );
+
+                if (steps.length) {
+
+                    const list = el('ol', 'trace');
+
+                    steps.forEach(line => {
+
+                        const cls =
+                            /fail|invalid|unavailable|timed out/i.test(line)
+                                ? 'bad'
+                                : /partial|skipped/i.test(line)
+                                    ? 'warn'
+                                    : '';
+
+                        list.appendChild(
+                            el('li', cls, line)
+                        );
+                    });
+
+                    details.appendChild(list);
+                }
+
+                if (res.stderr && res.stderr.trim()) {
+
+                    details.appendChild(
+                        el('div', 'meta', 'Crawler error output')
+                    );
+
+                    details.appendChild(
+                        el('pre', 'stderr', res.stderr)
+                    );
+                }
+
+                card.appendChild(details);
+            }
+
+            thread.appendChild(card);
+
+            scrollDown();
+        }
+
+        /* Local errors */
+
+        function localError(label, summary) {
+            return {
+                status: 'failed',
+                localLabel: label,
+                summary,
+                data: null,
+                wantsJson: false,
+                steps: [],
+                exitCode: null,
+                durationMs: 0,
+                stderr: ''
+            };
+        }
+
+        /* Send request */
+
+        form.addEventListener('submit', async event => {
+
+            event.preventDefault();
+
+            if (inFlight) return;
+
+            const message = input.value.trim();
+
+            const problem = validate(message);
+
+            if (problem) {
+                setHint(problem, true);
+                return;
+            }
+
+            addUser(message);
+
+            input.value = '';
+            autosize();
+
+            setHint('Enter to send · Shift + Enter for a new line');
+
+            const controller = new AbortController();
+
+            inFlight = controller;
+
+            setRunning(true);
+
+            const running = addRunning();
+
+            const timer = setTimeout(
+                () => controller.abort('timeout'),
+                CLIENT_TIMEOUT_MS
+            );
+
+            try {
+
+                const response = await fetch(ENDPOINT, {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+
+                    body: JSON.stringify({
+                        message: message
+                    }),
+
+                    signal: controller.signal
+                });
+
+                const raw = await response.text();
+
+                let body = null;
+
+                try {
+                    body = JSON.parse(raw);
+                } catch (_) {}
+
+                if (
+                    !body ||
+                    typeof body !== 'object' ||
+                    !('status' in body)
+                ) {
+
+                    renderResult(
+                        localError(
+                            'No valid response',
+                            'The server returned HTTP ' +
+                            response.status +
+                            ' without a valid crawl result.'
+                        )
+                    );
+
+                } else {
+
+                    renderResult(body);
+
+                }
+
+            } catch (error) {
+
+                const reason = controller.signal.aborted
+                    ? String(controller.signal.reason)
+                    : '';
+
+                if (reason === 'cancelled') {
+
+                    renderResult(
+                        localError(
+                            'Cancelled',
+                            'You stopped the request. The crawler process on the server may still finish independently.'
+                        )
+                    );
+
+                } else if (reason === 'timeout') {
+
+                    renderResult(
+                        localError(
+                            'Timed out',
+                            'No response within ' +
+                            (CLIENT_TIMEOUT_MS / 1000) +
+                            ' seconds. Try a smaller website.'
+                        )
+                    );
+
+                } else {
+
+                    renderResult(
+                        localError(
+                            'No response',
+                            'Could not reach the backend at ' +
+                            (API_BASE || location.origin) +
+                            '. Check whether Spring Boot is running.'
+                        )
+                    );
+
+                }
+
+            } finally {
+
+                clearTimeout(timer);
+
+                running.remove();
+
+                inFlight = null;
+
+                setRunning(false);
+            }
+
+        });
+
+        /* Initial setup */
+
+        autosize();
+
+        input.focus();
+
+    })();
+</script>
+
+</body>
+</html>
